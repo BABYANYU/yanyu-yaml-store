@@ -32,6 +32,11 @@ jobs:
       - name: "Install Deps"
         run: npm ci --no-fund
 
+      # workerd-free check: runs first so a broken workerd environment is
+      # distinguishable from a real regression in the Worker test suite.
+      - name: "Pure-logic checks (no workerd)"
+        run: node --test test/frontend-interactions.node.mjs
+
       - name: "Test"
         run: npm run coverage
 

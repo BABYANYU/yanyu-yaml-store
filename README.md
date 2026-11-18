@@ -42,6 +42,28 @@ npm run build
 
 `npm test -- --run` 显式请求单次测试；当前维护脚本中的 `npm test` 也已统一为非 watch。`npm run build` 调用 Wrangler 的 `deploy --dry-run --outdir=dist`，生成本地产物，不发布 Worker。可另运行 `npm run coverage` 查看覆盖率。记录 Node/npm 版本、源代码 SHA、完整测试结果、构建输出及产物 SHA-256；任一步失败就保留旧版本。
 
+### 运行环境的硬要求
+
+- **Node.js ≥ 24**：`package.json` 的 `engines` 已声明 `"node": ">=24.0.0"`（`packageManager` 为 `npm@11.19.1`），与上面的安装说明一致，无需改动。低于该版本时 `vitest 4.1.12`、`wrangler 4.163.0` 及锁文件中的依赖不保证可安装或可运行。
+- **完整可用的 workerd 环境**：`vite.config.js` 通过 `@cloudflare/vitest-plugin` 的 `cloudflareTest({ wrangler: { configPath: "./wrangler.toml" } })` 注册 Workers 测试池，`test/*.spec.js` 会在真实 workerd 中加载 Worker 与本地 KV 绑定。跑通整套 vitest 的前提是：
+  1. `npm ci` 完整成功（workerd 二进制随安装步骤获取，通常需要能访问 npm 与 Cloudflare 的下载源）；
+  2. 宿主平台在 workerd 支持范围内（常见 linux/darwin x64/arm64）；
+  3. 有可用的临时目录、进程启动权限和足够内存。
+- 在离线、精简容器、模拟 CPU（QEMU/仿真）或不受支持的架构上，`npm test` 会在启动阶段失败；这属于环境缺失，不是用例失败，不能据此判断代码回归。区分方法见下节的纯逻辑测试。
+- **本仓库本次仅修改文档与 CI，没有在本地执行 vitest 套件，也不以此宣称测试通过。** 文中提到的测试数量是历史记录，不是本轮本地运行结果；发布验证仍需在满足上述条件的机器上重新执行并留证。
+
+### 最小纯逻辑测试（不需要 workerd）
+
+环境不满足 workerd 要求时，可先跑一个不依赖 workerd 的最小纯逻辑测试，确认前端脚本的纯逻辑分支未被改坏：
+
+```sh
+node --test test/frontend-interactions.node.mjs
+```
+
+该文件用 `node:vm` 加一个极小的 jQuery/DOM 适配层，在纯 Node 中执行真实的 `frontend/index.client.js`（8 个用例，约 1 秒完成，不联网、不启动 workerd、不生成 Worker 绑定）。它**不能替代** vitest 套件：不覆盖浏览器布局、原生事件冒泡、剪贴板权限与可访问性树，也不能验证 Worker 端逻辑。它通过只表示“前端脚本的纯逻辑分支未回归”。
+
+两个工作流都先执行这一步再跑完整 vitest 套件（`.github/workflows/pr.yml`、`.github/workflows/deploy.yml`），这样 workerd 环境异常时会以“纯逻辑测试已通过、vitest 启动失败”的形态暴露出来，便于区分环境问题与代码问题。
+
 ## 部署配置
 
 仓库中的 [wrangler.toml](wrangler.toml) 是模板，**不得直接以 placeholder 配置部署生产**。部署前将模板复制到仓库外的受控配置文件，核对以下字段：

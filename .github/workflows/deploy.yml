@@ -30,6 +30,10 @@ jobs:
           cache: npm
       - name: Install locked dependencies
         run: npm ci --no-fund
+      # workerd-free check: runs first so a broken workerd environment is
+      # distinguishable from a real regression in the Worker test suite.
+      - name: Run pure-logic checks without workerd
+        run: node --test test/frontend-interactions.node.mjs
       - name: Test locally without production credentials
         run: npm test
         env:
