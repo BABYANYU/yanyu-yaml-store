@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang='zh-CN'>
+<head>
+    <meta charset='UTF-8'>
+    <title>YANYU LINK</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <meta name='theme-color' content='#f6f8fb'>
+    <link rel='icon' href='{{FAVICON}}' />
+    <style media='screen'>{{CSS}}</style>
+    <script>
+        (() => {
+            const storageKey = 'yanyu-link-theme';
+            const modes = ['auto', 'light', 'dark'];
+            const labels = { auto: '自动', light: '浅色', dark: '深色' };
+            let mode = 'auto';
+            try {
+                const saved = localStorage.getItem(storageKey);
+                if (modes.includes(saved)) mode = saved;
+            } catch {}
+
+            let button, timer;
+            function applyTheme() {
+                const now = new Date();
+                const hour = now.getHours();
+                const theme = mode === 'auto' ? (hour >= 7 && hour < 19 ? 'light' : 'dark') : mode;
+                document.documentElement.dataset.theme = theme;
+                document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#10151d' : '#f6f8fb';
+                if (button) {
+                    button.dataset.mode = mode;
+                    const next = modes[(modes.indexOf(mode) + 1) % modes.length];
+                    button.setAttribute('aria-label', '当前主题：' + labels[mode] + '，切换至' + labels[next]);
+                }
+                clearTimeout(timer);
+                if (mode === 'auto') {
+                    const boundary = new Date(now);
+                    if (hour >= 19) boundary.setDate(boundary.getDate() + 1);
+                    boundary.setHours(hour >= 7 && hour < 19 ? 19 : 7, 0, 0, 0);
+                    timer = setTimeout(applyTheme, Math.max(1, boundary - now));
+                }
+            }
+            applyTheme();
+            document.addEventListener('DOMContentLoaded', () => {
+                button = document.getElementById('theme-toggle');
+                button.addEventListener('click', () => {
+                    mode = modes[(modes.indexOf(mode) + 1) % modes.length];
+                    try { localStorage.setItem(storageKey, mode); } catch {}
+                    applyTheme();
+                });
+                button.hidden = false;
+                applyTheme();
+            });
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) applyTheme();
+            });
+        })();
+    </script>
+</head>
+<body>
+<a class='skip-link' href='#paste-textarea'>跳转到编辑器</a>
+<header class='site-header'>
+    <div class='header-inner'>
+        <a class='wordmark' href='{{BASE_URL}}' aria-label='YANYU LINK 首页'><strong>YANYU</strong> <span>LINK</span></a>
+        <nav aria-label='主导航'>
+            <button type='button' id='theme-toggle' hidden>
+                <svg class='theme-icon theme-auto' viewBox='0 0 24 24' aria-hidden='true'><circle cx='12' cy='12' r='8'/><path d='M12 8v4l3 2'/></svg>
+                <svg class='theme-icon theme-light' viewBox='0 0 24 24' aria-hidden='true'><circle cx='12' cy='12' r='4'/><path d='M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5'/></svg>
+                <svg class='theme-icon theme-dark' viewBox='0 0 24 24' aria-hidden='true'><path d='M20 15A8 8 0 0 1 9 4a8 8 0 1 0 11 11Z'/></svg>
+            </button>
+            <button type='button' id='about' aria-haspopup='dialog' aria-controls='about-dialog'>关于</button>
+        </nav>
+    </div>
+</header>
+<main class='workspace markdown-body'>
+    <h1 class='workspace-title'>订阅配置托管</h1>
+    <div class='workbench'>
+        <section id='paste-input-panel' aria-label='内容编辑器'>
+            <div id='paste-header'>
+                <div class='paste-header-tabs'>
+                    <button type='button' class='paste-tab enabled' id='paste-tab-edit'>粘贴配置</button>
+                    <label for='paste-file-upload' id='paste-tab-file' class='paste-tab'>
+                        <input type='file' id='paste-file-upload' aria-label='选择要上传的文件'>
+                        <span>上传文件</span>
+                    </label>
+                </div>
+            </div>
+            <div class='paste-tab-page enabled' id='paste-edit'>
+                <label class='sr-only' for='paste-textarea'>订阅配置内容</label>
+                <textarea id='paste-textarea' name='c' rows='20' spellcheck='false' autocapitalize='off' autocomplete='off'></textarea>
+            </div>
+            <div class='paste-tab-page' id='paste-file-show'>
+                <div class='file-state-icon' aria-hidden='true'>↑</div>
+                <h2>文件已就绪</h2>
+                <p id='paste-file-line'><code class='file-name'></code><span class='file-size'></span></p>
+                <p class='small-label'>可再次点击「上传文件」更换文件</p>
+            </div>
+        </section>
+        <section id='paste-setting-panel' aria-label='配置设置'>
+            <details id='advanced-settings'>
+                <summary id='settings-title'>高级设置</summary>
+                <div class='settings-content'>
+            <div id='paste-expiration-panel' class='paste-setting-subitem-panel'>
+                <label class='field-label' for='paste-expiration-input'>有效期</label>
+                <input list='expiration-choices' type='text' name='paste-expiration' id='paste-expiration-input' placeholder='例如 7d 或 3600' value='2147483647' aria-describedby='expiration-hint'>
+                <datalist id='expiration-choices'><option value='1h'>1 小时</option><option value='1d'>1 天</option><option value='7d'>7 天</option><option value='30d'>30 天</option><option value='2147483647'>长期保留</option></datalist>
+                <p class='small-label' id='expiration-hint'>到期后自动删除。支持 s 秒、m 分钟、h 小时、d 天、w 周、M 月、Y 年。</p>
+            </div>
+            <div id='paste-passwd-panel' class='paste-setting-subitem-panel'>
+                <label class='field-label' for='paste-passwd-input'>管理密码 <span class='optional'>可选</span></label>
+                <input type='password' autocomplete='new-password' spellcheck='false' name='paste-password' id='paste-passwd-input' placeholder='留空则随机生成' aria-describedby='password-hint'>
+                <p class='small-label' id='password-hint'>用于更新或删除内容，不限制链接访问。</p>
+            </div>
+            <fieldset class='url-options'>
+                <legend class='field-label'>链接方式</legend>
+                <div class='label-line'>
+                    <input type='radio' name='url-type' value='short' id='paste-url-short-radio' checked>
+                    <label for='paste-url-short-radio' class='radio-label'>简短链接<span class='small-label'>简洁易分享 · 随机生成</span></label>
+                </div>
+                <div class='label-line'>
+                    <input type='radio' name='url-type' value='long' id='paste-url-long-radio'>
+                    <label for='paste-url-long-radio' class='radio-label'>长随机链接<span class='small-label'>更长的随机路径</span></label>
+                </div>
+                <div class='label-line'>
+                    <input type='radio' name='url-type' value='custom' id='paste-url-custom-radio'>
+                    <label for='paste-url-custom-radio' class='radio-label'>自定义链接<span class='small-label'>为内容取一个专属名称</span></label>
+                    <div id='paste-url-input-wrapper'><span id='paste-url-input-prefix'>{{BASE_URL}}/~</span><input type='text' id='paste-custom-url-input' minlength='3' name='custom-url' placeholder='your-name' aria-label='自定义链接名称' autocapitalize='off' spellcheck='false'></div>
+                </div>
+                <div class='label-line'>
+                    <input type='radio' name='url-type' value='admin' id='paste-url-admin-radio'>
+                    <label for='paste-url-admin-radio' class='radio-label'>管理已有内容<span class='small-label'>使用管理员链接更新或删除</span></label>
+                    <input type='url' spellcheck='false' id='paste-admin-url-input' name='admin-url' value='{{BASE_URL}}' aria-label='管理员链接'>
+                </div>
+            </fieldset>
+                </div>
+            </details>
+            <div class='action-area'>
+                <button type='button' id='submit-button' class='long-button' disabled>生成链接</button>
+                <button type='button' id='delete-button' class='long-button hidden' disabled>删除</button>
+            </div>
+            <span id='submit-error-msg' role='status' aria-live='polite'></span>
+        </section>
+    </div>
+    <section id='paste-uploaded-panel' class='hidden' aria-labelledby='results-title' tabindex='-1'>
+        <h2 id='results-title' class='field-label'><label for='uploaded-url'>订阅链接</label></h2>
+        <div class='uploaded-entry'><input id='uploaded-url' type='text' class='uploaded-table-text' readonly><button type='button' class='copy-button'>复制链接</button></div>
+        <details id='management-links'>
+            <summary>管理链接</summary>
+            <div class='results-grid'>
+                <div class='result-item'><label class='field-label' for='uploaded-admin-url'>管理链接 <span class='small-label'>含管理密码，请勿分享</span></label><div class='uploaded-entry'><input id='uploaded-admin-url' type='text' class='uploaded-table-text' readonly><button type='button' class='copy-button'>复制链接</button></div></div>
+                <div class='result-item' id='result-suggest'><label class='field-label' for='uploaded-suggest-url'>文件下载或跳转链接</label><div class='uploaded-entry'><input id='uploaded-suggest-url' type='text' class='uploaded-table-text' readonly><button type='button' class='copy-button'>复制链接</button></div></div>
+                <div class='result-item' id='result-expiration'><label class='field-label' for='uploaded-expiration'>有效期（秒）</label><div class='uploaded-entry'><input type='text' id='uploaded-expiration' class='uploaded-table-text' readonly></div></div>
+            </div>
+        </details>
+    </section>
+</main>
+<dialog id='about-dialog' class='about-dialog' aria-labelledby='about-title' aria-describedby='about-subtitle'>
+    <form method='dialog' class='about-close-form'><button type='submit' id='about-close' aria-label='关闭关于'>×</button></form>
+    <h2 id='about-title' class='about-title' aria-label='YANYU LINK'><strong>YANYU</strong> LINK</h2>
+    <p id='about-subtitle' class='about-subtitle'>订阅配置托管</p>
+    <p class='about-credit'>由 <strong>YANYU</strong> 设计与维护</p>
+    <a class='about-contact' href='https://t.me/+88807915423' target='_blank' rel='noopener noreferrer'>Telegram <span aria-hidden='true'>↗</span></a>
+    <p class='about-copyright'>© 2026 YANYU · YANYU LINK</p>
+    <p class='about-rights'>网站设计版权归 YANYU 所有</p>
+</dialog>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js'></script>
+<script>
+    {{INDEX_JS}}
+</script>
+</body>
+</html>

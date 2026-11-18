@@ -1,0 +1,13 @@
+:root {
+    --font-ui: 'Microsoft YaHei UI', 'Microsoft YaHei', 'PingFang SC', 'Noto Sans CJK SC', system-ui, sans-serif;
+    --font-mono: Consolas, Menlo, 'Liberation Mono', 'Microsoft YaHei UI', 'Microsoft YaHei', 'PingFang SC', 'Noto Sans CJK SC', monospace;
+}
+
+body, .markdown-body {
+    font-family: var(--font-ui);
+}
+
+pre, code, kbd, samp, .markdown-body pre, .markdown-body code,
+pre[class*='language-'], code[class*='language-'] {
+    font-family: var(--font-mono);
+}

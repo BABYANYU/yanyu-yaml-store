@@ -1,0 +1,85 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: yanyu-yaml-store-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+      KV_NAMESPACE_ID: ${{ secrets.KV_NAMESPACE_ID }}
+      PRODUCTION_CHECKPOINT: /tmp/yaml-production-metadata.json
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-fund
+      - name: Test locally without production credentials
+        run: npm test
+        env:
+          CLOUDFLARE_API_TOKEN: ''
+          CLOUDFLARE_ACCOUNT_ID: ''
+          KV_NAMESPACE_ID: ''
+      - name: Verify existing production binding and inventory metadata
+        id: guard
+        run: node scripts/production-guard.mjs before
+      - name: Configure existing Worker without changing variables or storage
+        env:
+          WORKERS_DEV: ${{ steps.guard.outputs.workers_dev }}
+          PREVIEW_URLS: ${{ steps.guard.outputs.preview_urls }}
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {readFileSync,writeFileSync} from 'node:fs';
+          const id=process.env.KV_NAMESPACE_ID;
+          assert.match(id??'',/^[a-f0-9]{32}$/i);
+          const original=readFileSync('wrangler.toml','utf8');
+          assert.match(original,/^name\s*=\s*"pb"/m);
+          assert.ok(original.includes('REPLACE_WITH_YOUR_KV_NAMESPACE_ID'));
+          let config=original.split(/^\[vars\]\s*$/m)[0]
+            .replaceAll('your-domain.example','fakeyou.eu.org')
+            .replaceAll('REPLACE_WITH_YOUR_KV_NAMESPACE_ID',id)
+            .replace(/^workers_dev\s*=.*$/m,'workers_dev = '+process.env.WORKERS_DEV);
+          config='preview_urls = '+process.env.PREVIEW_URLS+'\n'+config;
+          writeFileSync('wrangler.toml',config);
+          NODE
+      - name: Validate deployment bundle locally
+        run: npm run build
+      - name: Deploy code only and retain existing variables and PB namespace
+        run: npx --no-install wrangler deploy --keep-vars
+      - name: Verify original binding variables and unexpired key inventory
+        run: node scripts/production-guard.mjs after
+      - name: Verify public homepage without creating any paste
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          let html='';
+          // Edge propagation can briefly serve the previous version right after upload.
+          for(let attempt=1;attempt<=12;attempt++){
+            const r=await fetch('https://fakeyou.eu.org/?v='+Date.now(),{redirect:'error',cache:'no-store',signal:AbortSignal.timeout(20000)});
+            assert.equal(r.status,200);
+            html=await r.text();
+            if(html.includes('YANYU LINK')) break;
+            if(attempt===12) break;
+            await new Promise(r=>setTimeout(r,5000));
+          }
+          assert.ok(html.includes('YANYU LINK'),'Public homepage still serves a stale brand after 60s');
+          assert.ok(html.includes('paste-textarea')&&html.includes('submit-button'));
+          console.log('Public homepage verified. No production paste created or modified.');
+          NODE

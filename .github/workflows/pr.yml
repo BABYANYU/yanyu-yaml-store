@@ -1,0 +1,43 @@
+name: PR tests
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - ref: ${{ github.event.pull_request.head.sha }}
+            name: "head"
+          - ref: ${{ github.event.pull_request.base.sha }}
+            name: "base"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Both commits are available through the base repository's PR refs.
+          ref: ${{ matrix.ref }}
+          persist-credentials: false
+
+      - name: "Install Node"
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: "Install Deps"
+        run: npm ci --no-fund
+
+      - name: "Test"
+        run: npm run coverage
+
+      # Keep comparison inputs as artifacts without granting PR comment access.
+      - name: "Upload Coverage"
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.name }}
+          path: coverage
