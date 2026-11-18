@@ -18,7 +18,7 @@
     "test": "vitest run",
     "coverage": "vitest run --coverage"
   },
-  "author": "BABYANYU, based on pastebin-worker by Sharzy L",
+  "author": "BABYANYU",
   "license": "MIT",
   "devDependencies": {
     "@cloudflare/vitest-plugin": "1.8.2",

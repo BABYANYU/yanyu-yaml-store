@@ -1,5 +1,3 @@
-> Based on [pastebin-worker](https://github.com/SharzyL/pastebin-worker) by Sharzy L (MIT). Original copyright retained in LICENSE.
-
 # Yanyu YAML Store
 
 基于 Cloudflare Workers 与 KV 的文本、YAML 和文件分享服务，维护站点为 **[fakeyou.eu.org](https://fakeyou.eu.org/)**。
@@ -15,7 +13,7 @@
 
 支持网页上传、更新、删除、过期时间、自定义短路径、语法高亮、Markdown 展示、URL 跳转和响应 MIME 类型。YAML Store 是项目名称，上传内容不会因此自动通过 YAML 语义校验。
 
-网页入口：[https://fakeyou.eu.org/](https://fakeyou.eu.org/)。HTTP 接口沿用上游形态；[API 参考](doc/api.md)已同步本轮本地契约，示例不代表生产已部署或已完成验收，具体行为以对应版本的测试及维护记录为准。命令行辅助工具见 [scripts](scripts/README.md)。
+网页入口：[https://fakeyou.eu.org/](https://fakeyou.eu.org/)。HTTP 接口沿用既有形态；[API 参考](doc/api.md)已同步本轮本地契约，示例不代表生产已部署或已完成验收，具体行为以对应版本的测试及维护记录为准。命令行辅助工具见 [scripts](scripts/README.md)。
 
 以下示例仅操作本地模拟器：
 
