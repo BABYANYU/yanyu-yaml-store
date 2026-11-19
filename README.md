@@ -1,6 +1,6 @@
 # Yanyu YAML Store
 
-Yanyu YAML Store 是一款基于 Cloudflare Workers 与 KV 的轻量内容分享服务，可通过网页或 HTTP API 上传、读取、更新和删除文本及文件。YAML 是项目名称的一部分；内容按原始文本或文件保存，不会自动进行 YAML 语义校验。
+Yanyu YAML Store 是轻量文本与文件分享服务，支持通过网页或 HTTP API 上传、读取、更新和删除内容。服务运行在 Cloudflare Workers 上，使用 KV 存储；上传时保留原始内容，YAML 语义需自行校验。
 
 **在线网页入口：** [fakeyou.eu.org](https://fakeyou.eu.org/)
 
